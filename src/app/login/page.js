@@ -1,0 +1,74 @@
+'use client'
+import { useState } from 'react'
+import { getSupabase } from '@/lib/supabaseClient'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+
+export default function Login() {
+  const [email, setEmail] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState(null)
+  const router = useRouter()
+
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setMessage(null)
+
+    const { error } = await getSupabase().auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      setMessage({ type: 'error', text: error.message })
+    } else {
+      setMessage({ type: 'success', text: 'Check your email for the login link!' })
+    }
+    setLoading(false)
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-slate-800 p-8 rounded-2xl shadow-xl">
+        <h2 className="text-3xl font-bold mb-6 text-center text-emerald-400">Login to fan_h2h</h2>
+
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-2">Email Address</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-white placeholder-slate-500"
+              placeholder="you@example.com"
+            />
+          </div>
+
+          {message && (
+            <div className={`p-4 rounded-lg text-sm ${message.type === 'error' ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+              {message.text}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold rounded-lg transition-colors"
+          >
+            {loading ? 'Sending Link...' : 'Send Magic Link'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <Link href="/" className="text-slate-400 hover:text-white text-sm">
+            &larr; Back to Home
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
