@@ -11,41 +11,58 @@ export default function Dashboard() {
   const router = useRouter()
   const user = useUserStore((state) => state.user)
   const club = useUserStore((state) => state.club)
+  const setUser = useUserStore((state) => state.setUser)
+  const setClub = useUserStore((state) => state.setClub)
   const { setMatchId, setOpponent, setGameState, setQuestions, resetGame } = useGameStore()
   const logoutStore = useUserStore((state) => state.logout)
 
-  const [status, setStatus] = useState('idle') // idle, searching, creating, joining
+  const [status, setStatus] = useState('idle')
   const [inviteLink, setInviteLink] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [error, setError] = useState(null)
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
-    if (!user) {
-      router.push('/login')
-      return
+    let cancelled = false
+    const check = async () => {
+      const { data: { session } } = await getSupabase().auth.getSession()
+      if (!session) {
+        router.push('/login')
+        return
+      }
+      if (!cancelled) {
+        if (!user) {
+          const name = session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User'
+          setUser({ id: session.user.id, email: session.user.email, name })
+        }
+        if (!club) {
+          const { data } = await getSupabase().from('users').select('club').eq('id', session.user.id).single()
+          if (data?.club) setClub(data.club)
+        }
+        setAuthChecked(true)
+      }
     }
+    check()
+    return () => { cancelled = true }
+  }, [router, user, club, setUser, setClub])
 
-    // Connect socket
+  useEffect(() => {
+    if (!authChecked || !user) return
     if (!socket.connected) {
       socket.connect()
     }
-
-    // Socket listeners
     function onMatchFound(data) {
-      console.log('Match found!', data)
       setMatchId(data.matchId)
       const opp = typeof data.opponent === 'function' ? data.opponent(socket.id) : data.opponent
       setOpponent(opp)
       setGameState('playing')
       router.push('/match')
     }
-
     socket.on('match_found', onMatchFound)
-
     return () => {
       socket.off('match_found', onMatchFound)
     }
-  }, [user, router, setMatchId, setOpponent, setGameState])
+  }, [authChecked, user, router, setMatchId, setOpponent, setGameState])
 
   function AutoJoin({ user, club, setStatus, setError }) {
     const searchParams = useSearchParams()
@@ -171,118 +188,127 @@ export default function Dashboard() {
       </header>
 
       <Suspense fallback={null}><AutoJoin user={user} club={club} setStatus={setStatus} setError={setError} /></Suspense>
-      <main className="max-w-md mx-auto mt-12 space-y-8">
-        {/* Status Display */}
-        {status === 'searching' && (
+      {!authChecked ? (
+        <main className="max-w-md mx-auto mt-12">
           <div className="bg-slate-800 p-8 rounded-2xl text-center">
             <Search className="w-12 h-12 mx-auto text-emerald-400 mb-4 animate-pulse" />
-            <h2 className="text-2xl font-bold mb-2">Searching for opponent...</h2>
-            <p className="text-slate-400 mb-4">Matching you with a rival fan</p>
-            <button
-              onClick={handleCancelWait}
-              className="mt-2 px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
+            <h2 className="text-2xl font-bold mb-2">Preparing dashboard...</h2>
           </div>
-        )}
-
-        {status === 'joining' && (
-          <div className="bg-slate-800 p-8 rounded-2xl text-center">
-            <Search className="w-12 h-12 mx-auto text-purple-400 mb-4 animate-pulse" />
-            <h2 className="text-2xl font-bold mb-2">Joining private room...</h2>
-            <p className="text-slate-400 mb-4">Waiting for match to start</p>
-            <button
-              onClick={handleCancelWait}
-              className="mt-2 px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
-
-        {status === 'idle' && (
-          <>
-            <button
-              onClick={handleFindMatch}
-              className="w-full py-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-2xl rounded-2xl shadow-lg shadow-emerald-500/20 transition-all transform hover:scale-105 flex items-center justify-center gap-3"
-            >
-              <Play className="w-8 h-8" />
-              Find Match
-            </button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-700"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-slate-900 text-slate-500">OR</span>
-              </div>
+        </main>
+      ) : (
+        <main className="max-w-md mx-auto mt-12 space-y-8">
+          {/* Status Display */}
+          {status === 'searching' && (
+            <div className="bg-slate-800 p-8 rounded-2xl text-center">
+              <Search className="w-12 h-12 mx-auto text-emerald-400 mb-4 animate-pulse" />
+              <h2 className="text-2xl font-bold mb-2">Searching for opponent...</h2>
+              <p className="text-slate-400 mb-4">Matching you with a rival fan</p>
+              <button
+                onClick={handleCancelWait}
+                className="mt-2 px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
             </div>
+          )}
 
-            <div className="bg-slate-800 p-6 rounded-xl space-y-6">
-              <div className="text-center">
-                <h3 className="text-lg font-bold mb-2 flex items-center justify-center gap-2">
-                  <Users className="w-5 h-5 text-purple-400" />
-                  Play with Friend
-                </h3>
+          {status === 'joining' && (
+            <div className="bg-slate-800 p-8 rounded-2xl text-center">
+              <Search className="w-12 h-12 mx-auto text-purple-400 mb-4 animate-pulse" />
+              <h2 className="text-2xl font-bold mb-2">Joining private room...</h2>
+              <p className="text-slate-400 mb-4">Waiting for match to start</p>
+              <button
+                onClick={handleCancelWait}
+                className="mt-2 px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {status === 'idle' && (
+            <>
+              <button
+                onClick={handleFindMatch}
+                className="w-full py-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-2xl rounded-2xl shadow-lg shadow-emerald-500/20 transition-all transform hover:scale-105 flex items-center justify-center gap-3"
+              >
+                <Play className="w-8 h-8" />
+                Find Match
+              </button>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-700"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-slate-900 text-slate-500">OR</span>
+                </div>
               </div>
 
-              {!inviteLink ? (
-                <button
-                  onClick={handleCreatePrivate}
-                  className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
-                >
-                  Create Private Room
-                </button>
-              ) : (
-                <div className="bg-slate-900 p-4 rounded-lg text-center">
-                  <p className="text-sm text-slate-400 mb-2">Share this code or link:</p>
-                  <div className="text-3xl font-mono font-bold text-emerald-400 tracking-widest mb-2">
-                    {inviteLink}
-                  </div>
-                  <div className="text-xs text-slate-500 mb-3 break-all">
-                    {typeof window !== 'undefined' && `${window.location.origin}/dashboard?room=${inviteLink}`}
-                  </div>
-                  <button
-                    onClick={() => navigator.clipboard.writeText(`${window.location.origin}/dashboard?room=${inviteLink}`)}
-                    className="mr-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors inline-flex items-center gap-2"
-                  >
-                    <Copy className="w-4 h-4" /> Copy Link
-                  </button>
-                  <button
-                    onClick={handleCancelWait}
-                    className="mt-2 px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
+              <div className="bg-slate-800 p-6 rounded-xl space-y-6">
+                <div className="text-center">
+                  <h3 className="text-lg font-bold mb-2 flex items-center justify-center gap-2">
+                    <Users className="w-5 h-5 text-purple-400" />
+                    Play with Friend
+                  </h3>
                 </div>
-              )}
 
-              <form onSubmit={handleJoinPrivate} className="pt-4 border-t border-slate-700">
-                <label className="block text-sm text-slate-400 mb-2">Have a code?</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                    placeholder="ENTER CODE"
-                    className="flex-1 px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none font-mono text-center uppercase"
-                  />
+                {!inviteLink ? (
                   <button
-                    type="submit"
-                    disabled={!joinCode}
-                    className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors"
+                    onClick={handleCreatePrivate}
+                    className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
                   >
-                    Join
+                    Create Private Room
                   </button>
-                </div>
-                {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
-              </form>
-            </div>
-          </>
-        )}
-      </main>
+                ) : (
+                  <div className="bg-slate-900 p-4 rounded-lg text-center">
+                    <p className="text-sm text-slate-400 mb-2">Share this code or link:</p>
+                    <div className="text-3xl font-mono font-bold text-emerald-400 tracking-widest mb-2">
+                      {inviteLink}
+                    </div>
+                    <div className="text-xs text-slate-500 mb-3 break-all">
+                      {typeof window !== 'undefined' && `${window.location.origin}/dashboard?room=${inviteLink}`}
+                    </div>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(`${window.location.origin}/dashboard?room=${inviteLink}`)}
+                      className="mr-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors inline-flex items-center gap-2"
+                    >
+                      <Copy className="w-4 h-4" /> Copy Link
+                    </button>
+                    <button
+                      onClick={handleCancelWait}
+                      className="mt-2 px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
+                <form onSubmit={handleJoinPrivate} className="pt-4 border-t border-slate-700">
+                  <label className="block text-sm text-slate-400 mb-2">Have a code?</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={joinCode}
+                      onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                      placeholder="ENTER CODE"
+                      className="flex-1 px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none font-mono text-center uppercase"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!joinCode}
+                      className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-lg transition-colors"
+                    >
+                      Join
+                    </button>
+                  </div>
+                  {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
+                </form>
+              </div>
+            </>
+          )}
+        </main>
+      )}
     </div>
   )
 }

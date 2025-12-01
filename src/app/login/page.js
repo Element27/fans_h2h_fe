@@ -35,9 +35,7 @@ export default function Login() {
     setMessage(null)
 
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const envOverride = process.env.NEXT_PUBLIC_AUTH_REDIRECT
-    console.log('envOverride', envOverride)
-    const redirectUrl = envOverride ? envOverride : `${origin}/auth/callback`
+    const redirectUrl = `${origin}/auth/callback`
 
     console.log('redirectUrl', redirectUrl)
     const { error } = await getSupabase().auth.signInWithOtp({
