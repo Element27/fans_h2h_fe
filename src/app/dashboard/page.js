@@ -5,14 +5,16 @@ import { socket } from '@/lib/socket'
 import { getSupabase } from '@/lib/supabaseClient'
 import useUserStore from '@/stores/useUserStore'
 import useGameStore from '@/stores/useGameStore'
-import { Copy, Users, Play, Search } from 'lucide-react'
+import { Copy, Users, Play, Search, Share2 } from 'lucide-react'
 
 export default function Dashboard() {
   const router = useRouter()
   const user = useUserStore((state) => state.user)
   const club = useUserStore((state) => state.club)
+  const clubId = useUserStore((state) => state.clubId)
   const setUser = useUserStore((state) => state.setUser)
   const setClub = useUserStore((state) => state.setClub)
+  const setClubId = useUserStore((state) => state.setClubId)
   const { setMatchId, setOpponent, setGameState, setQuestions, resetGame } = useGameStore()
   const logoutStore = useUserStore((state) => state.logout)
 
@@ -35,9 +37,10 @@ export default function Dashboard() {
           const name = session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User'
           setUser({ id: session.user.id, email: session.user.email, name })
         }
-        if (!club) {
-          const { data } = await getSupabase().from('users').select('club').eq('id', session.user.id).single()
+        if (!club || !clubId) {
+          const { data } = await getSupabase().from('users').select('club, club_id').eq('id', session.user.id).single()
           if (data?.club) setClub(data.club)
+          if (data?.club_id) setClubId(data.club_id)
         }
         setAuthChecked(true)
       }
@@ -75,7 +78,8 @@ export default function Dashboard() {
             id: user.id,
             email: user.email,
             name: user.name,
-            club: club
+            club: club,
+            club_id: clubId
           }
         }, (response) => {
           if (response.error) {
@@ -100,7 +104,8 @@ export default function Dashboard() {
       id: user.id,
       email: user.email,
       name: user.name,
-      club: club
+      club: club,
+      club_id: clubId
     })
   }
 
@@ -114,10 +119,12 @@ export default function Dashboard() {
       id: user.id,
       email: user.email,
       name: user.name,
-      club: club
+      club: club,
+      club_id: clubId
     }, (response) => {
       if (response.roomId) {
         setInviteLink(response.roomId)
+        setStatus('idle')
       }
     })
   }
@@ -137,7 +144,8 @@ export default function Dashboard() {
         id: user.id,
         email: user.email,
         name: user.name,
-        club: club
+        club: club,
+        club_id: clubId
       }
     }, (response) => {
       if (response.error) {
@@ -275,6 +283,24 @@ export default function Dashboard() {
                     >
                       <Copy className="w-4 h-4" /> Copy Link
                     </button>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(inviteLink)}
+                      className="mr-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors inline-flex items-center gap-2"
+                    >
+                      <Copy className="w-4 h-4" /> Copy Code
+                    </button>
+                    {typeof window !== 'undefined' && navigator.share && (
+                      <button
+                        onClick={() => navigator.share({
+                          title: 'fan_h2h Private Room',
+                          text: 'Join my private match',
+                          url: `${window.location.origin}/dashboard?room=${inviteLink}`
+                        }).catch(() => { })}
+                        className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors inline-flex items-center gap-2"
+                      >
+                        <Share2 className="w-4 h-4" /> Share
+                      </button>
+                    )}
                     <button
                       onClick={handleCancelWait}
                       className="mt-2 px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors"

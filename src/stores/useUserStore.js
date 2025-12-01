@@ -6,8 +6,10 @@ const useUserStore = create(
     (set) => ({
       user: null,
       club: null,
+      clubId: null,
       setUser: (user) => set({ user }),
       setClub: (club) => set({ club }),
+      setClubId: (clubId) => set({ clubId }),
       logout: () => set({ user: null, club: null }),
     }),
     {

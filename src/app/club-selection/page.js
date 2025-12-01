@@ -15,6 +15,7 @@ export default function ClubSelection() {
   const router = useRouter()
   const setUser = useUserStore((state) => state.setUser)
   const setClub = useUserStore((state) => state.setClub)
+  const setClubId = useUserStore((state) => state.setClubId)
 
   useEffect(() => {
     const checkSession = async () => {
@@ -66,6 +67,7 @@ export default function ClubSelection() {
       } else {
         setUser({ id: session.user.id, email: session.user.email, name })
         setClub(selectedClub.name)
+        setClubId(selectedClub.id)
         router.push('/dashboard')
       }
     }
