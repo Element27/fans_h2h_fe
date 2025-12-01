@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { socket } from '@/lib/socket'
 import useUserStore from '@/stores/useUserStore'
@@ -45,29 +45,31 @@ export default function Dashboard() {
     }
   }, [user, router, setMatchId, setOpponent, setGameState])
 
-  // Auto-join via URL parameter ?room=CODE
-  const searchParams = useSearchParams()
-  useEffect(() => {
-    const code = searchParams.get('room')
-    if (code && user) {
-      socket.emit('join_private_room', {
-        roomId: code.toUpperCase(),
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          club: club
-        }
-      }, (response) => {
-        if (response.error) {
-          setError(response.error)
-          setStatus('idle')
-        } else {
-          setStatus('joining')
-        }
-      })
-    }
-  }, [searchParams, user, club])
+  function AutoJoin({ user, club, setStatus, setError }) {
+    const searchParams = useSearchParams()
+    useEffect(() => {
+      const code = searchParams.get('room')
+      if (code && user) {
+        socket.emit('join_private_room', {
+          roomId: code.toUpperCase(),
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            club: club
+          }
+        }, (response) => {
+          if (response.error) {
+            setError(response.error)
+            setStatus('idle')
+          } else {
+            setStatus('joining')
+          }
+        })
+      }
+    }, [searchParams, user, club])
+    return null
+  }
 
   const handleFindMatch = () => {
     if (!user) {
@@ -150,6 +152,7 @@ export default function Dashboard() {
         </div>
       </header>
 
+      <Suspense fallback={null}><AutoJoin user={user} club={club} setStatus={setStatus} setError={setError} /></Suspense>
       <main className="max-w-md mx-auto mt-12 space-y-8">
         {/* Status Display */}
         {status === 'searching' && (
