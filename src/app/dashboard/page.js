@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { socket } from '@/lib/socket'
+import { getSupabase } from '@/lib/supabaseClient'
 import useUserStore from '@/stores/useUserStore'
 import useGameStore from '@/stores/useGameStore'
 import { Copy, Users, Play, Search } from 'lucide-react'
@@ -10,7 +11,8 @@ export default function Dashboard() {
   const router = useRouter()
   const user = useUserStore((state) => state.user)
   const club = useUserStore((state) => state.club)
-  const { setMatchId, setOpponent, setGameState, setQuestions } = useGameStore()
+  const { setMatchId, setOpponent, setGameState, setQuestions, resetGame } = useGameStore()
+  const logoutStore = useUserStore((state) => state.logout)
 
   const [status, setStatus] = useState('idle') // idle, searching, creating, joining
   const [inviteLink, setInviteLink] = useState('')
@@ -138,6 +140,16 @@ export default function Dashboard() {
     setError(null)
   }
 
+  const handleLogout = async () => {
+    try {
+      await getSupabase().auth.signOut()
+    } catch { }
+    socket.disconnect()
+    resetGame()
+    logoutStore()
+    router.push('/login')
+  }
+
   return (
     <div className="min-h-screen bg-slate-900 text-white p-4">
       <header className="flex justify-between items-center max-w-4xl mx-auto py-6">
@@ -149,6 +161,12 @@ export default function Dashboard() {
             <p className="font-bold">{user?.name}</p>
             <p className="text-sm text-slate-400">{club}</p>
           </div>
+          <button
+            onClick={handleLogout}
+            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm"
+          >
+            Logout
+          </button>
         </div>
       </header>
 

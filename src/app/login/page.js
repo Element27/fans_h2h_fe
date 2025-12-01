@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -9,6 +9,25 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
   const router = useRouter()
+
+  useEffect(() => {
+    const run = async () => {
+      const { data: { session } } = await getSupabase().auth.getSession()
+      if (session) {
+        const { data, error } = await getSupabase()
+          .from('users')
+          .select('club')
+          .eq('id', session.user.id)
+          .single()
+        if (!error && data?.club) {
+          router.push('/dashboard')
+        } else {
+          router.push('/club-selection')
+        }
+      }
+    }
+    run()
+  }, [router])
 
   const handleLogin = async (e) => {
     e.preventDefault()

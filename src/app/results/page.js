@@ -4,16 +4,25 @@ import { useRouter } from 'next/navigation'
 import { socket } from '@/lib/socket'
 import useUserStore from '@/stores/useUserStore'
 import useGameStore from '@/stores/useGameStore'
-import { Trophy, Home, RotateCcw } from 'lucide-react'
+import { Trophy, Home, RotateCcw, LogOut } from 'lucide-react'
+import { getSupabase } from '@/lib/supabaseClient'
 
 export default function Results() {
   const router = useRouter()
   const user = useUserStore((state) => state.user)
   const { scores, opponent, resetGame } = useGameStore()
+  const logoutStore = useUserStore((state) => state.logout)
 
   useEffect(() => {
     if (!user) router.push('/login')
   }, [user, router])
+
+  const handleLogout = async () => {
+    try { await getSupabase().auth.signOut() } catch {}
+    resetGame()
+    logoutStore()
+    router.push('/login')
+  }
 
   const myScore = scores[socket.id] || 0
   const opponentScore = Object.entries(scores).find(([id]) => id !== socket.id)?.[1] || 0
@@ -74,6 +83,14 @@ export default function Results() {
           >
             <Home className="w-5 h-5" />
             Back to Dashboard
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="w-full py-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+          >
+            <LogOut className="w-5 h-5" />
+            Logout
           </button>
         </div>
       </div>
