@@ -15,10 +15,19 @@ export default function Login() {
     setLoading(true)
     setMessage(null)
 
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1')
+    const envOverride = process.env.NEXT_PUBLIC_AUTH_REDIRECT
+    const redirectUrl = envOverride
+      ? envOverride
+      : isLocal
+        ? `${origin}/auth/callback`
+        : `${origin}/login`
+
     const { error } = await getSupabase().auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: redirectUrl,
       },
     })
 
