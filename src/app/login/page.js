@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export default function Login() {
+  // hook (useState)
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
   const router = useRouter()
 
+  // hook (useEffect)
   useEffect(() => {
     const run = async () => {
       const { data: { session } } = await getSupabase().auth.getSession()
@@ -52,6 +54,10 @@ export default function Login() {
     }
     setLoading(false)
   }
+
+  // JSX xml/xhtml/html 
+  // java xml
+  // js html  jsx
 
   return (
     <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
