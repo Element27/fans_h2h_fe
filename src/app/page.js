@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4 no-scrollbar">
       <div className="max-w-md w-full text-center space-y-8">
         <h1 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
           fan_h2h
