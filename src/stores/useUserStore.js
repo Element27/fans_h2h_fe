@@ -7,10 +7,25 @@ const useUserStore = create(
       user: null,
       club: null,
       clubId: null,
-      setUser: (user) => set({ user }),
+      isGuest: false,
+      setUser: (user) => set({ user, isGuest: false }),
       setClub: (club) => set({ club }),
       setClubId: (clubId) => set({ clubId }),
-      logout: () => set({ user: null, club: null }),
+      setGuestUser: (name, club, clubId) => {
+        const guestId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        set({
+          user: {
+            id: guestId,
+            name: name || `Guest_${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+            email: null,
+            isGuest: true
+          },
+          club,
+          clubId,
+          isGuest: true
+        })
+      },
+      logout: () => set({ user: null, club: null, clubId: null, isGuest: false }),
     }),
     {
       name: 'fan_h2h-user-storage',
