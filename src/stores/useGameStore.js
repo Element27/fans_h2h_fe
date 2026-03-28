@@ -6,6 +6,8 @@ const useGameStore = create((set) => ({
   questions: [],
   currentQuestionIndex: 0,
   scores: {}, // { socketId: score }
+  finalScores: null,
+  winnerId: null,
   timer: 10,
   gameState: 'idle', // idle, matchmaking, playing, results
   opponent: null,
@@ -14,6 +16,12 @@ const useGameStore = create((set) => ({
   setGameState: (state) => set({ gameState: state }),
   setQuestions: (questions) => set({ questions }),
   setOpponent: (opponent) => set({ opponent }),
+  setScores: (scores) => set({ scores }),
+  setFinalResult: ({ scores, winnerId }) => set({
+    scores,
+    finalScores: scores,
+    winnerId: winnerId ?? null,
+  }),
 
   updateScore: (playerId, score) => set((state) => ({
     scores: { ...state.scores, [playerId]: score }
@@ -26,6 +34,8 @@ const useGameStore = create((set) => ({
     questions: [],
     currentQuestionIndex: 0,
     scores: {},
+    finalScores: null,
+    winnerId: null,
     gameState: 'idle',
     opponent: null,
     timer: 10

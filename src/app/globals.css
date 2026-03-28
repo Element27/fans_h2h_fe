@@ -1,26 +1,228 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #050816;
+  --foreground: #f8fafc;
+  --card: rgba(15, 23, 42, 0.7);
+  --card-foreground: #f8fafc;
+  --primary: #bef264;
+  --primary-foreground: #050816;
+  --secondary: #111c31;
+  --secondary-foreground: #f8fafc;
+  --muted: #1f2937;
+  --muted-foreground: #94a3b8;
+  --accent: #facc15;
+  --accent-foreground: #050816;
+  --destructive: #ef4444;
+  --destructive-foreground: #f8fafc;
+  --border: rgba(255, 255, 255, 0.09);
+  --input: rgba(15, 23, 42, 0.92);
+  --ring: rgba(190, 242, 100, 0.85);
+  --radius: 1.5rem;
+  --primary-ring: rgba(190, 242, 100, 0.95);
+  --danger-ring: rgba(239, 68, 68, 0.95);
+  --card-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 18px 40px -16px rgba(0, 0, 0, 0.75);
+  --surface-glow: radial-gradient(circle at top, rgba(190, 242, 100, 0.12), transparent 45%);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-mono: "Consolas", "Courier New", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
 }
 
 body {
-  background: var(--background);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top center, rgba(190, 242, 100, 0.07), transparent 30%),
+    radial-gradient(circle at bottom center, rgba(250, 204, 21, 0.06), transparent 24%),
+    linear-gradient(180deg, #050816 0%, #07101f 100%);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.font-display {
+  font-family: var(--font-geist-mono), monospace;
+  letter-spacing: -0.06em;
+}
+
+.arena-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.arena-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--surface-glow);
+}
+
+.arena-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.55));
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(14px);
+}
+
+.arena-card-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(190, 242, 100, 0.07), transparent 50%);
+}
+
+.arena-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  border-radius: 1rem;
+  padding: 0.95rem 1.25rem;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.825rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease, opacity 180ms ease;
+}
+
+.arena-button:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.01);
+}
+
+.arena-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.arena-button-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 0 24px rgba(190, 242, 100, 0.24);
+}
+
+.arena-button-primary:hover:not(:disabled) {
+  box-shadow: 0 0 40px rgba(190, 242, 100, 0.35);
+}
+
+.arena-button-secondary {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--foreground);
+}
+
+.arena-button-secondary:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.metadata-label {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.neon-text {
+  text-shadow: 0 0 10px rgba(190, 242, 100, 0.42);
+}
+
+.gold-text {
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.4);
+}
+
+.animated-dots span {
+  animation: arena-bounce 0.7s infinite ease-in-out;
+}
+
+.animated-dots span:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.animated-dots span:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+.pulse-ring {
+  animation: pulse-ring 1.8s infinite ease-out;
+}
+
+.pulse-ring:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.pulse-ring:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+.answer-correct {
+  border-color: rgba(190, 242, 100, 0.6);
+  box-shadow: 0 0 30px rgba(190, 242, 100, 0.22);
+}
+
+.answer-wrong {
+  border-color: rgba(239, 68, 68, 0.6);
+  animation: arena-shake 0.35s ease-in-out;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.45; }
+  100% { transform: scale(1.85); opacity: 0; }
+}
+
+@keyframes arena-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.45; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+
+@keyframes arena-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
 }

@@ -1,8 +1,14 @@
 'use client'
+
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { ArrowLeft, Mail, Shield } from 'lucide-react'
+import { motion } from 'framer-motion'
+import ScreenHeader from '@/components/ui/ScreenHeader'
+import ArenaCard from '@/components/ui/ArenaCard'
+import { PrimaryButton, SecondaryButton } from '@/components/ui/ActionButton'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -37,7 +43,6 @@ export default function Login() {
     const origin = typeof window !== 'undefined' ? window.location.origin : ''
     const redirectUrl = `${origin}/auth/callback`
 
-    console.log('redirectUrl', redirectUrl)
     const { error } = await getSupabase().auth.signInWithOtp({
       email,
       options: {
@@ -54,44 +59,83 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-slate-800 p-8 rounded-2xl shadow-xl">
-        <h2 className="text-3xl font-bold mb-6 text-center text-emerald-400">Login to fan_h2h</h2>
+    <main className="arena-shell flex min-h-screen items-center justify-center px-6 py-12">
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 w-full max-w-5xl"
+      >
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="flex flex-col justify-between gap-8">
+            <div className="space-y-6">
+              <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+                <ArrowLeft className="h-4 w-4" />
+                <span className="metadata-label">Back</span>
+              </Link>
+              <ScreenHeader
+                eyebrow="Authentication"
+                title="Enter the arena."
+                subtitle="Use your email to get a magic login link, then finish your profile and join the live match queue."
+              />
+            </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">Email Address</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-white placeholder-slate-500"
-              placeholder="you@example.com"
-            />
+            <ArenaCard className="hidden p-6 lg:block">
+              <div className="space-y-4">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Shield className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="font-display text-xl font-black uppercase tracking-[-0.08em] text-foreground">
+                    Secure fan access
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    The current Supabase magic-link flow stays intact, so this screen is a UI upgrade
+                    without changing authentication behavior.
+                  </p>
+                </div>
+              </div>
+            </ArenaCard>
           </div>
 
-          {message && (
-            <div className={`p-4 rounded-lg text-sm ${message.type === 'error' ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
-              {message.text}
-            </div>
-          )}
+          <ArenaCard glow className="p-8 md:p-10">
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div className="space-y-2">
+                <label className="metadata-label">Email Address</label>
+                <div className="arena-card flex items-center gap-3 rounded-2xl px-4 py-3">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                    placeholder="you@example.com"
+                  />
+                </div>
+              </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold rounded-lg transition-colors"
-          >
-            {loading ? 'Sending Link...' : 'Send Magic Link'}
-          </button>
-        </form>
+              {message ? (
+                <div className={`rounded-2xl border px-4 py-3 text-sm ${
+                  message.type === 'error'
+                    ? 'border-red-500/30 bg-red-500/10 text-red-300'
+                    : 'border-primary/30 bg-primary/10 text-primary'
+                }`}>
+                  {message.text}
+                </div>
+              ) : null}
 
-        <div className="mt-6 text-center">
-          <Link href="/" className="text-slate-400 hover:text-white text-sm">
-            &larr; Back to Home
-          </Link>
+              <PrimaryButton type="submit" disabled={loading} className="w-full">
+                {loading ? 'Sending Link...' : 'Send Magic Link'}
+              </PrimaryButton>
+
+              <SecondaryButton type="button" className="w-full" onClick={() => router.push('/')}>
+                Return Home
+              </SecondaryButton>
+            </form>
+          </ArenaCard>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </main>
   )
 }

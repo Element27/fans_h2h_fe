@@ -1,16 +1,21 @@
 'use client'
+
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { socket } from '@/lib/socket'
 import useUserStore from '@/stores/useUserStore'
 import useGameStore from '@/stores/useGameStore'
-import { Trophy, Home, RotateCcw, LogOut } from 'lucide-react'
+import { Home, LogOut, RotateCcw, Trophy } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { getSupabase } from '@/lib/supabaseClient'
+import ArenaCard from '@/components/ui/ArenaCard'
+import { PrimaryButton, SecondaryButton } from '@/components/ui/ActionButton'
 
 export default function Results() {
   const router = useRouter()
   const user = useUserStore((state) => state.user)
-  const { scores, opponent, resetGame } = useGameStore()
+  const isGuest = useUserStore((state) => state.isGuest)
+  const { scores, finalScores, winnerId, opponent, resetGame } = useGameStore()
   const logoutStore = useUserStore((state) => state.logout)
 
   useEffect(() => {
@@ -18,17 +23,19 @@ export default function Results() {
   }, [user, router])
 
   const handleLogout = async () => {
-    try { await getSupabase().auth.signOut() } catch {}
+    if (!isGuest) {
+      try { await getSupabase().auth.signOut() } catch {}
+    }
     resetGame()
     logoutStore()
-    router.push('/login')
+    router.push(isGuest ? '/' : '/login')
   }
 
-  const myScore = scores[socket.id] || 0
-  const opponentScore = Object.entries(scores).find(([id]) => id !== socket.id)?.[1] || 0
-
-  const isWinner = myScore > opponentScore
-  const isDraw = myScore === opponentScore
+  const resolvedScores = finalScores || scores
+  const myScore = resolvedScores[socket.id] || 0
+  const opponentScore = Object.entries(resolvedScores).find(([id]) => id !== socket.id)?.[1] || 0
+  const isDraw = winnerId === null ? myScore === opponentScore : false
+  const isWinner = winnerId ? winnerId === user?.id : myScore > opponentScore
 
   const handlePlayAgain = () => {
     resetGame()
@@ -36,64 +43,82 @@ export default function Results() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-slate-800 p-8 rounded-2xl shadow-2xl text-center">
-        <div className="mb-8">
-          {isWinner ? (
-            <div className="inline-block p-4 bg-emerald-500/20 rounded-full mb-4">
-              <Trophy className="w-16 h-16 text-emerald-400" />
+    <main className="arena-shell flex min-h-screen items-center justify-center px-6 py-12">
+      <motion.div
+        initial={{ opacity: 0, y: 24, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 w-full max-w-2xl"
+      >
+        <ArenaCard glow className="overflow-hidden p-8 text-center md:p-12">
+          <div className={`absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full blur-3xl ${
+            isWinner ? 'bg-primary/15' : isDraw ? 'bg-accent/10' : 'bg-destructive/15'
+          }`} />
+
+          <div className="relative space-y-8">
+            <div className="space-y-4">
+              <div className={`mx-auto inline-flex h-20 w-20 items-center justify-center rounded-full border ${
+                isWinner ? 'border-primary/30 bg-primary/10 text-primary' : 'border-white/10 bg-white/5 text-muted-foreground'
+              }`}>
+                <Trophy className="h-10 w-10" />
+              </div>
+              <div>
+                <div className="metadata-label">Match Result</div>
+                <h1 className={`font-display mt-3 text-5xl font-black uppercase tracking-[-0.1em] ${
+                  isWinner ? 'text-primary neon-text' : isDraw ? 'text-accent gold-text' : 'text-destructive'
+                }`}>
+                  {isWinner ? 'Victory' : isDraw ? 'Draw' : 'Defeat'}
+                </h1>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {isWinner ? 'You owned the arena this round.' : isDraw ? 'A dead-even battle. Run it back.' : 'The rival fan took this one. Queue again for revenge.'}
+                </p>
+              </div>
             </div>
-          ) : (
-            <div className="inline-block p-4 bg-slate-700 rounded-full mb-4">
-              <Trophy className="w-16 h-16 text-slate-500" />
+
+            <div className="flex items-center justify-center gap-8">
+              <div className="text-center">
+                <div className="font-display text-5xl font-black text-primary">{myScore}</div>
+                <div className="metadata-label mt-2">{user?.name || 'You'}</div>
+              </div>
+              <div className="font-display text-2xl text-muted-foreground">VS</div>
+              <div className="text-center">
+                <div className="font-display text-5xl font-black text-destructive">{opponentScore}</div>
+                <div className="metadata-label mt-2">{opponent?.name || 'Opponent'}</div>
+              </div>
             </div>
-          )}
 
-          <h1 className="text-4xl font-black mb-2">
-            {isWinner ? 'VICTORY!' : isDraw ? 'DRAW!' : 'DEFEAT'}
-          </h1>
-          <p className="text-slate-400">
-            {isWinner ? 'You dominated the pitch!' : 'Better luck next time.'}
-          </p>
-        </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <ArenaCard className="p-5">
+                <div className="metadata-label">Accuracy Pulse</div>
+                <div className="font-display mt-3 text-3xl font-black text-foreground">
+                  {myScore + opponentScore > 0 ? `${Math.round((myScore / (myScore + opponentScore)) * 100)}%` : '0%'}
+                </div>
+              </ArenaCard>
+              <ArenaCard className="p-5">
+                <div className="metadata-label">Opponent</div>
+                <div className="font-display mt-3 text-3xl font-black text-foreground">
+                  {opponent?.name || 'Rival'}
+                </div>
+              </ArenaCard>
+            </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-slate-700 p-4 rounded-xl">
-            <p className="text-sm text-slate-400 mb-1">You</p>
-            <p className="text-3xl font-bold text-emerald-400">{myScore}</p>
+            <div className="flex flex-col gap-3">
+              <PrimaryButton type="button" onClick={handlePlayAgain} className="w-full justify-center">
+                <RotateCcw className="h-4 w-4" />
+                Play Again
+              </PrimaryButton>
+              <SecondaryButton type="button" onClick={() => router.push('/dashboard')} className="w-full justify-center">
+                <Home className="h-4 w-4" />
+                Back to Dashboard
+              </SecondaryButton>
+              <SecondaryButton type="button" onClick={handleLogout} className="w-full justify-center">
+                <LogOut className="h-4 w-4" />
+                Logout
+              </SecondaryButton>
+            </div>
           </div>
-          <div className="bg-slate-700 p-4 rounded-xl">
-            <p className="text-sm text-slate-400 mb-1">{opponent?.name || 'Opponent'}</p>
-            <p className="text-3xl font-bold text-red-400">{opponentScore}</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <button
-            onClick={handlePlayAgain}
-            className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-all transform hover:scale-105 flex items-center justify-center gap-2"
-          >
-            <RotateCcw className="w-5 h-5" />
-            Play Again
-          </button>
-
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="w-full py-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
-          >
-            <Home className="w-5 h-5" />
-            Back to Dashboard
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="w-full py-4 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
-          >
-            <LogOut className="w-5 h-5" />
-            Logout
-          </button>
-        </div>
-      </div>
-    </div>
+        </ArenaCard>
+      </motion.div>
+    </main>
   )
 }
